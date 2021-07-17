@@ -43,8 +43,13 @@ function fetchList()	-- wait for internet
  -- if(CONNECTED) then
  if(wifi.sta.getip()) then    -- if ip, then it is connected
     connTimer:stop()
-    buffer=getHTTP()
+    getHTTP()
+    if(buffer==NULL) then
+       print("null data\n")
+    else   
     print("fetched"..buffer)
+    checkFiles() -- wait for list, if not empty, download files
+    end
  else
     connCount=connCount+1     --fai after 3 retries
     if(connCount<3) then
@@ -81,11 +86,12 @@ BODY[3]="/"
 BODY[4]=SUBDIR
 BODY[5]=REQ
 local REQUEST=table.concat(BODY)
-return http.get(REQUEST, nil, function(code, data)
+buffer=http.get(REQUEST, nil, function(code, data)
     if (code < 0) then
-      print("HTTP request failed")
+      print("HTTP request failed\n")
       print(REQUEST)
     end
+    print("data: "..data)
     return data
   end)
 end
@@ -102,4 +108,4 @@ end
  connCount=0
  buffer=""
  connTimer:alarm(connTimeout,tmr.ALARM_SINGLE,function() fetchList() end) 
- checkFiles() -- wait for list, if not empty, download files
+ 
