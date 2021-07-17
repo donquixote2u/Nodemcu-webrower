@@ -1,11 +1,14 @@
 function checkFiles()
+print("checking OTA files\n")
   t={}
   getContent()-- get list (if any) of  files to download
+  print("found\n"..buffer)
   for filename in buffer:gmatch("%S+") do
       table.insert(t,filename)
   end
  if (#t < 1) then return end -- stop if no files to download
  -- put init swap here?
+ print("getting OTA files\n")
  x=0    --reset index for getFiles to use
  n={}   -- init temp file table
  getFiles()
@@ -37,11 +40,17 @@ function getFiles()
 end	    
 
 function fetchList()	-- wait for internet
- if(CONNECTED) then
-    tmr.stop(3)
+ -- if(CONNECTED) then
+ if(wifi.sta.getip()) then    -- if ip, then it is connected
+    connTimer:stop()
     buffer=getHTTP()
+    print("fetched"..buffer)
  else
-    tmr.alarm( 3, 2000, 0, fetchList)
+    connCount=connCount+1     --fai after 3 retries
+    if(connCount<3) then
+        connTimer:alarm(connTimeout,tmr.ALARM_SINGLE,function() fetchList() end) 
+    else print("conn failure")
+    end
  end
 end 
 
@@ -85,9 +94,12 @@ end
  -- check connected, ifnot then connect
  --require("connectIP")  17/7/21 now done in init
  id=node.chipid()   
- SERVER="192.168.0.2" -- set address
+ SERVER="192.168.0.8" -- set address
  SUBDIR="NODEMCU-OTA" -- set dir
  REQ="/WebUI/?id="..id
+ connTimeout=2000       --  timer in ms
+ connTimer=tmr.create()  -- start timer
+ connCount=0
  buffer=""
- fetchList()
+ connTimer:alarm(connTimeout,tmr.ALARM_SINGLE,function() fetchList() end) 
  checkFiles() -- wait for list, if not empty, download files
